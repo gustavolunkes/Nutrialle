@@ -1,0 +1,30 @@
+<IfModule mod_rewrite.c>
+    RewriteEngine On
+    RewriteBase /site-institucional-Nutrialle/
+
+    RewriteCond %{REQUEST_FILENAME} !-f
+    RewriteCond %{REQUEST_FILENAME} !-d
+    RewriteCond %{REQUEST_URI} !^/site-institucional-Nutrialle/(admin|assets|config|core|includes|layouts)/
+
+    # Produto individual: /produto/PRD-ABC123
+    RewriteRule ^produto/([A-Za-z0-9-]+)/?$ produto.php?sku=$1 [L,QSA]
+
+    # Listagem de categoria de produto: /produtos/slug
+    RewriteRule ^produtos/([a-z0-9-]+)/?$ categoria-produtos.php?slug=$1 [L,QSA]
+
+    # Páginas normais (menu/categoria/subcategoria)
+    RewriteRule ^([a-z0-9-]+(?:/[a-z0-9-]+)*)/?$ pagina.php?slug=$1 [L,QSA]
+</IfModule>
+
+ErrorDocument 404 /site-institucional-Nutrialle/404.php
+Options -Indexes
+
+<FilesMatch "\.(sql|md|json|log)$">
+    <IfModule mod_authz_core.c>
+        Require all denied
+    </IfModule>
+    <IfModule !mod_authz_core.c>
+        Order allow,deny
+        Deny from all
+    </IfModule>
+</FilesMatch>

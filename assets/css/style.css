@@ -1,0 +1,382 @@
+/* ===== RESET ===== */
+* {
+    margin: 0;
+    padding: 0;
+    box-sizing: border-box;
+}
+
+html {
+    overflow-x: clip; /* clip não quebra position:fixed (diferente de hidden) */
+    width: 100%;
+    height: 100%;
+}
+
+body {
+    font-family: -apple-system, BlinkMacSystemFont, 'Segoe UI', Roboto, 'Helvetica Neue', Arial, sans-serif;
+    line-height: 1.6;
+    color: #333;
+    background: #f5f5f5;
+    overflow-x: clip; /* clip não quebra position:fixed (diferente de hidden) */
+}
+
+a {
+    text-decoration: none;
+    color: inherit;
+}
+
+ul {
+    list-style: none;
+}
+
+
+/* ===== HEADER ===== */
+.header {
+    background: var(--hdr-bg, #00071c);
+    border-bottom: 1px solid var(--hdr-border, #1e2a3a);
+    position: sticky;
+    top: 0;
+    z-index: 1000;
+    box-shadow: 0 2px 10px rgba(0,0,0,0.15);
+    width: 100%;
+}
+
+.header-container {
+    max-width: 1200px;
+    margin: 0 auto;
+    display: flex;
+    justify-content: space-between;
+    align-items: center;
+    padding: 0 20px;
+    position: relative;
+    width: 100%;
+}
+
+/* ===== LOGO ===== */
+.logo {
+    font-size: 24px;
+    font-weight: bold;
+    padding: 20px 0;
+    z-index: 1000;
+}
+
+.logo a {
+    color: var(--hdr-text, #ffffff);
+}
+
+/* ===== MOBILE MENU TOGGLE ===== */
+.mobile-menu-toggle {
+    display: none;
+    flex-direction: column;
+    gap: 7px;
+    background: none;
+    border: none;
+    cursor: pointer;
+    z-index: 1002;
+    padding: 5px;
+}
+
+.mobile-menu-toggle span {
+    display: block;
+    width: 25px;
+    height: 3px;
+    background: var(--hdr-text, #ffffff);
+    border-radius: 3px;
+    transition: all 0.3s;
+}
+
+.mobile-menu-toggle.active span:nth-child(1) {
+    transform: rotate(45deg) translate(7px, 7px);
+}
+.mobile-menu-toggle.active span:nth-child(2) {
+    opacity: 0;
+}
+.mobile-menu-toggle.active span:nth-child(3) {
+    transform: rotate(-45deg) translate(7px, -7px);
+}
+
+/* ===== NAVEGAÇÃO DESKTOP ===== */
+.main-nav > ul {
+    display: flex;
+    align-items: center;
+    gap: 5px;
+}
+
+.main-nav > ul > li {
+    position: relative;
+}
+
+.main-nav > ul > li > a {
+    display: block;
+    padding: 30px 20px;
+    color: var(--hdr-nav-link, #ffffff);
+    font-weight: 500;
+    white-space: nowrap;
+}
+
+/* ===== DROPDOWN - CATEGORIAS (Desktop) ===== */
+.dropdown {
+    position: absolute;
+    top: 100%;
+    left: 0;
+    background: #ffffff;
+    min-width: 250px;
+    box-shadow: 0 5px 20px rgba(0,0,0,0.15);
+    border-radius: 0 0 8px 8px;
+    opacity: 0;
+    visibility: hidden;
+    transform: translateY(-10px);
+    transition: all 0.3s;
+}
+
+.main-nav > ul > li:hover .dropdown {
+    opacity: 1;
+    visibility: visible;
+    transform: translateY(0);
+}
+
+.dropdown li {
+    position: relative;
+    border-bottom: 1px solid rgba(0,0,0,0.06);
+}
+
+.dropdown li:last-child {
+    border-bottom: none;
+}
+
+.dropdown li > a {
+    display: block;
+    padding: 12px 20px;
+    color: var(--hdr-nav-link, #ffffff);;
+}
+
+/* ===== DROPDOWN - SUBCATEGORIAS (Desktop) ===== */
+.dropdown-sub {
+    position: absolute;
+    top: 0;
+    left: 100%;
+    background: #f8f9fa;
+    min-width: 200px;
+    box-shadow: 0 5px 20px rgba(0,0,0,0.15);
+    border-radius: 0 8px 8px 0;
+    opacity: 0;
+    visibility: hidden;
+    transform: translateX(-10px);
+    transition: all 0.3s;
+}
+
+.dropdown li:hover .dropdown-sub {
+    opacity: 1;
+    visibility: visible;
+    transform: translateX(0);
+}
+
+.dropdown-sub li > a {
+    display: block;
+    padding: 10px 20px;
+    font-size: 14px;
+    color: var(--hdr-nav-link, #ffffff);
+}
+
+/* ===== INDICADOR DE SUBMENU (Desktop) ===== */
+.has-submenu > a::after {
+    content: ' ▸';
+    float: right;
+    margin-left: 10px;
+}
+
+/* ===== MOBILE OVERLAY ===== */
+.mobile-overlay {
+    display: none;
+    position: fixed;
+    top: 0;
+    left: 0;
+    width: 100%;
+    height: 100%;
+    background: rgba(0,0,0,0.6);
+    z-index: 999;
+    backdrop-filter: blur(2px);
+    opacity: 0;
+    transition: opacity 0.3s;
+}
+
+.mobile-overlay.active {
+    display: block;
+    opacity: 1;
+}
+
+/* ===== MAIN CONTENT ===== */
+.main-content {
+    /*
+
+     */
+}
+
+/* ===== RESPONSIVE - MOBILE ===== */
+@media (max-width: 768px) {
+
+    /*
+     * CORREÇÃO: No mobile, aplicamos as variáveis mob_* diretamente nos elementos
+     * pois redefinir --hdr-* apontando para --mob-* não funciona em todos os browsers.
+     * As variáveis --mob-* são definidas via PHP no <style> do header.php.
+     */
+
+    .mobile-menu-toggle {
+        display: flex;
+    }
+
+    /* Hamburger usa cor mobile */
+    .mobile-menu-toggle span {
+        background: var(--mob-text, #ffffff);
+    }
+
+    /* Logo usa cor mobile */
+    .logo a {
+        color: var(--mob-text, #ffffff);
+    }
+
+    /* Header barra principal usa cores mobile */
+    .header {
+        background: var(--mob-bg, #111827);
+        border-bottom-color: var(--mob-border, #1e2a3a);
+    }
+
+    /* Sidebar mobile */
+    .main-nav {
+        position: fixed;
+        top: 0;
+        left: -100%;
+        width: 85%;
+        max-width: 350px;
+        height: 100vh;
+        background: var(--mob-bg, #111827);
+        transition: left 0.3s ease;
+        overflow-y: auto;
+        overflow-x: hidden;
+        z-index: 1001;
+        box-shadow: 5px 0 20px rgba(0,0,0,0.3);
+    }
+
+    .main-nav.active {
+        left: 0;
+        background: var(--mob-menu-aberto, #1a2235);
+    }
+
+    /* Lista principal mobile */
+    .main-nav > ul {
+        flex-direction: column;
+        gap: 0;
+        padding: 80px 0 30px 0;
+        width: 100%;
+    }
+
+    .main-nav > ul > li {
+        width: 100%;
+        border-bottom: 1px solid var(--mob-border, rgba(255,255,255,0.07));
+    }
+
+    .main-nav > ul > li > a {
+        padding: 18px 25px;
+        color: var(--mob-nav-link, #ffffff);
+        font-size: 16px;
+        display: flex;
+        align-items: center;
+        justify-content: space-between;
+        width: 100%;
+    }
+
+    /* Indicador de submenu mobile */
+    .has-submenu > a::after {
+        content: '+';
+        float: none;
+        margin: 0;
+        font-size: 24px;
+        font-weight: 300;
+        transition: transform 0.3s;
+    }
+
+    .has-submenu.active > a::after {
+        content: '−';
+    }
+
+    /* Dropdown mobile — Categorias (cores fixas) */
+    .dropdown {
+        position: static;
+        opacity: 1;
+        visibility: visible;
+        transform: none;
+        box-shadow: none;
+        border-radius: 0;
+        display: none;
+        background: #f2f2f2;
+        max-height: 0;
+        overflow: hidden;
+        transition: max-height 0.3s ease;
+        width: 100%;
+    }
+
+    .dropdown.active {
+        display: block;
+        max-height: 1000px;
+    }
+
+    .dropdown li {
+        border-bottom: 1px solid rgba(0,0,0,0.06);
+        width: 100%;
+    }
+
+    .dropdown li > a {
+        padding: 15px 25px 15px 45px;
+        font-size: 15px;
+        color: #111827;
+        display: flex;
+        align-items: center;
+        justify-content: space-between;
+        width: 100%;
+    }
+
+    /* Dropdown mobile — Subcategorias (cores fixas) */
+    .dropdown-sub {
+        position: static;
+        opacity: 1;
+        visibility: visible;
+        transform: none;
+        box-shadow: none;
+        border-radius: 0;
+        display: none;
+        background: #dedede;
+        max-height: 0;
+        overflow: hidden;
+        transition: max-height 0.3s ease;
+        width: 100%;
+    }
+
+    .dropdown-sub.active {
+        display: block;
+        max-height: 1000px;
+    }
+
+    .dropdown-sub li {
+        border-bottom: 1px solid rgba(0,0,0,0.04);
+        width: 100%;
+    }
+
+    .dropdown-sub li:last-child {
+        border-bottom: none;
+    }
+
+    .dropdown-sub li > a {
+        padding: 13px 25px 13px 65px;
+        font-size: 14px;
+        color: #374151;
+        width: 100%;
+    }
+
+    .dropdown .has-submenu > a::after {
+        font-size: 20px;
+    }
+}
+
+/* Previne scroll quando menu mobile está aberto */
+body.menu-open {
+    overflow: hidden;
+}

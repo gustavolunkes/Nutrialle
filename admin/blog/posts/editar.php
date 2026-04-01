@@ -118,7 +118,9 @@ textarea.fc{resize:vertical}
 .char-count{font-size:11px;text-align:right;color:#9ca3af;margin-top:2px}
 .char-count.warn{color:#f59e0b}
 .char-count.over{color:#ef4444}
-#inp-conteudo{min-height:300px;font-family:inherit}
+.html-toolbar{display:flex;flex-wrap:wrap;gap:8px;margin-bottom:8px}
+.html-toolbar button{border:1px solid #d1d5db;border-radius:6px;background:#f3f4f6;color:#111827;padding:6px 10px;font-size:12px;cursor:pointer}
+.html-toolbar button:hover{background:#e5e7eb}
 </style>
 
 <main class="content">
@@ -166,8 +168,18 @@ textarea.fc{resize:vertical}
 
                 <div class="fg">
                     <label>Conteúdo <span class="req">*</span></label>
+                    <div class="html-toolbar" id="html-toolbar">
+                        <button type="button" data-action="addHeading">Título</button>
+                        <button type="button" data-action="addParagraph">Parágrafo</button>
+                        <button type="button" data-action="addBulletList">Lista com marcadores</button>
+                        <button type="button" data-action="addNumberedList">Lista numerada</button>
+                        <button type="button" data-action="addLink">Link</button>
+                        <button type="button" data-action="addImage">Imagem</button>
+                        <button type="button" data-action="bold">Negrito</button>
+                        <button type="button" data-action="italic">Itálico</button>
+                    </div>
                     <textarea name="conteudo" class="fc" id="inp-conteudo" required><?= htmlspecialchars($post['conteudo']) ?></textarea>
-                    <span class="hint">Suporta HTML. Use &lt;p&gt;, &lt;h2&gt;, &lt;ul&gt;, &lt;ol&gt;, &lt;strong&gt;, &lt;em&gt;, etc.</span>
+                    <span class="hint">Use o editor visual. Você não precisa escrever HTML manualmente.</span>
                 </div>
             </div>
 
@@ -233,8 +245,14 @@ textarea.fc{resize:vertical}
             <div class="card">
                 <p class="section-title">Imagem de Destaque</p>
                 <div class="fg">
+                    <label>Upload de Imagem</label>
+                    <input type="file" id="file-imagem" accept="image/*" class="fc">
+                    <span class="hint">Selecione uma imagem para fazer upload (JPG, PNG, WEBP, GIF - máx 5MB)</span>
+                </div>
+                <div class="fg">
                     <label>URL da Imagem</label>
-                    <input type="text" name="imagem_destaque" class="fc" value="<?= htmlspecialchars($post['imagem_destaque'] ?? '') ?>" placeholder="/uploads/blog/imagem.jpg">
+                    <input type="text" name="imagem_destaque" id="inp-imagem" class="fc" value="<?= htmlspecialchars($post['imagem_destaque'] ?? '') ?>" placeholder="/assets/uploads/blog/imagem.jpg">
+                    <div id="img-preview" style="margin-top:10px;"></div>
                 </div>
                 <div class="fg">
                     <label>Texto alternativo (alt)</label>
@@ -272,6 +290,134 @@ inpResumo.addEventListener('input', () => updateCharCount(inpResumo, ccResumo, 3
 inpMeta.addEventListener('input', () => updateCharCount(inpMeta, ccMeta, 160));
 updateCharCount(inpResumo, ccResumo, 300);
 updateCharCount(inpMeta, ccMeta, 160);
+
+// Upload de imagem
+const fileInput = document.getElementById('file-imagem');
+const urlInput  = document.getElementById('inp-imagem');
+const preview   = document.getElementById('img-preview');
+
+fileInput.addEventListener('change', () => {
+    const file = fileInput.files[0];
+    if (!file) return;
+
+    const formData = new FormData();
+    formData.append('imagem', file);
+
+    fetch('upload.php', {
+        method: 'POST',
+        body: formData
+    })
+    .then(response => response.json())
+    .then(data => {
+        if (data.success) {
+            urlInput.value = data.path;
+            updatePreview(data.path);
+        } else {
+            alert('Erro no upload: ' + data.error);
+        }
+    })
+    .catch(error => {
+        alert('Erro na requisição: ' + error.message);
+    });
+});
+
+urlInput.addEventListener('input', () => {
+    updatePreview(urlInput.value);
+});
+
+function updatePreview(url) {
+    if (url) {
+        preview.innerHTML = `<img src="${url}" alt="Preview" style="max-width:100%; max-height:200px; border:1px solid #ddd; border-radius:4px;">`;
+    } else {
+        preview.innerHTML = '';
+    }
+}
+
+// Inicializar preview se houver URL
+updatePreview(urlInput.value);
+
+// Gerador de HTML simples (sem CDN), com botão amigável para cliente
+const editorTextarea = document.getElementById('inp-conteudo');
+const buttons = document.querySelectorAll('#html-toolbar button');
+
+function insertAtCursor(el, text) {
+    const start = el.selectionStart;
+    const end = el.selectionEnd;
+    const value = el.value;
+    el.value = value.substring(0, start) + text + value.substring(end);
+    el.selectionStart = el.selectionEnd = start + text.length;
+    el.focus();
+}
+
+buttons.forEach(btn => {
+    btn.addEventListener('click', () => {
+        const action = btn.dataset.action;
+
+        if (action === 'addHeading') {
+            const texto = prompt('Texto do título (apenas tecle Enter para cancelar):');
+            if (!texto) return;
+            insertAtCursor(editorTextarea, `<h2>${texto}</h2>\n\n`);
+        } else if (action === 'addParagraph') {
+            const texto = prompt('Texto do parágrafo (apenas tecle Enter para cancelar):');
+            if (!texto) return;
+            insertAtCursor(editorTextarea, `<p>${texto}</p>\n\n`);
+        } else if (action === 'addBulletList') {
+            const texto = prompt('Itens separados por vírgula:');
+            if (!texto) return;
+            const items = texto.split(',').map(item => item.trim()).filter(Boolean);
+            if (!items.length) return;
+            const html = `<ul>\n${items.map(i => `<li>${i}</li>`).join('\n')}\n</ul>\n\n`;
+            insertAtCursor(editorTextarea, html);
+        } else if (action === 'addNumberedList') {
+            const texto = prompt('Itens separados por vírgula:');
+            if (!texto) return;
+            const items = texto.split(',').map(item => item.trim()).filter(Boolean);
+            if (!items.length) return;
+            const html = `<ol>\n${items.map(i => `<li>${i}</li>`).join('\n')}\n</ol>\n\n`;
+            insertAtCursor(editorTextarea, html);
+        } else if (action === 'addLink') {
+            const url = prompt('URL do link:');
+            if (!url) return;
+            const text = prompt('Texto do link:') || url;
+            insertAtCursor(editorTextarea, `<a href="${url}">${text}</a>`);
+        } else if (action === 'addImage') {
+            const url = prompt('URL da imagem:');
+            if (!url) return;
+            const alt = prompt('Texto alternativo (alt) da imagem:') || '';
+            insertAtCursor(editorTextarea, `<img src="${url}" alt="${alt}" />`);
+        } else if (action === 'bold') {
+            const value = editorTextarea.value;
+            const start = editorTextarea.selectionStart;
+            const end = editorTextarea.selectionEnd;
+            if (start === end) {
+                const texto = prompt('Texto para negrito:');
+                if (!texto) return;
+                insertAtCursor(editorTextarea, `<strong>${texto}</strong>`);
+            } else {
+                const selected = value.substring(start, end);
+                editorTextarea.value = value.substring(0, start) + `<strong>${selected}</strong>` + value.substring(end);
+                editorTextarea.selectionStart = start;
+                editorTextarea.selectionEnd = end + 17;
+                editorTextarea.focus();
+            }
+        } else if (action === 'italic') {
+            const value = editorTextarea.value;
+            const start = editorTextarea.selectionStart;
+            const end = editorTextarea.selectionEnd;
+            if (start === end) {
+                const texto = prompt('Texto para itálico:');
+                if (!texto) return;
+                insertAtCursor(editorTextarea, `<em>${texto}</em>`);
+            } else {
+                const selected = value.substring(start, end);
+                editorTextarea.value = value.substring(0, start) + `<em>${selected}</em>` + value.substring(end);
+                editorTextarea.selectionStart = start;
+                editorTextarea.selectionEnd = end + 9;
+                editorTextarea.focus();
+            }
+        }
+    });
+});
 </script>
 
 <?php include __DIR__ . '/../../includes/footer.php'; ?>

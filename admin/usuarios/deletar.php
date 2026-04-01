@@ -30,6 +30,13 @@ if (!$user) {
     exit;
 }
 
+// 🚫 Não permite deletar usuário master
+if ($user['user_master'] === 'S') {
+    $_SESSION['error'] = 'Usuários master não podem ser deletados';
+    header('Location: index.php');
+    exit;
+}
+
 // Se confirmou a exclusão
 if ($_SERVER['REQUEST_METHOD'] === 'POST' && isset($_POST['confirm'])) {
     try {

@@ -34,6 +34,7 @@ if (!$user) {
 if ($_SERVER['REQUEST_METHOD'] === 'POST') {
     $name = trim($_POST['name'] ?? '');
     $email = trim($_POST['email'] ?? '');
+    $current_password = $_POST['current_password'] ?? '';
     $password = $_POST['password'] ?? '';
     $confirm_password = $_POST['confirm_password'] ?? '';
     $role = $_POST['role'] ?? 'viewer';
@@ -44,6 +45,10 @@ if ($_SERVER['REQUEST_METHOD'] === 'POST') {
         $error = 'Preencha todos os campos obrigatórios';
     } elseif (!filter_var($email, FILTER_VALIDATE_EMAIL)) {
         $error = 'Email inválido';
+    } elseif (!empty($password) && empty($current_password)) {
+        $error = 'Informe a senha atual para alterar a senha';
+    } elseif (!empty($password) && !password_verify($current_password, $user['password'])) {
+        $error = 'Senha atual incorreta';
     } elseif (!empty($password) && strlen($password) < 6) {
         $error = 'A senha deve ter no mínimo 6 caracteres';
     } elseif (!empty($password) && $password !== $confirm_password) {
@@ -232,6 +237,13 @@ include __DIR__ . '/../includes/sidebar.php';
                 <label for="email">Email <span class="required">*</span></label>
                 <input type="email" id="email" name="email" required placeholder="joao@exemplo.com" value="<?= htmlspecialchars($user['email']) ?>">
             </div>
+
+            <!-- 🔒 NOVO CAMPO -->
+            <div class="form-group">
+                <label for="current_password">Senha Atual</label>
+                <input type="password" id="current_password" name="current_password" placeholder="Digite a senha atual">
+                <div class="form-hint">Obrigatória para alterar a senha</div>
+            </div>
             
             <div class="form-group">
                 <label for="password">Nova Senha (deixe em branco para não alterar)</label>
@@ -247,9 +259,7 @@ include __DIR__ . '/../includes/sidebar.php';
             <div class="form-group">
                 <label for="role">Tipo de Usuário</label>
                 <select id="role" name="role">
-                    <option value="viewer" <?= $user['role'] == 'viewer' ? 'selected' : '' ?>>Visualizador</option>
-                    <option value="editor" <?= $user['role'] == 'editor' ? 'selected' : '' ?>>Editor</option>
-                    <option value="admin" <?= $user['role'] == 'admin' ? 'selected' : '' ?>>Administrador</option>
+                    <option value="admin" <?= $user['role'] == 'admin' ? 'selected' : 'selected' ?>>Administrador</option>
                 </select>
             </div>
             

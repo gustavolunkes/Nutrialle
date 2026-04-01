@@ -22,7 +22,6 @@ try {
         $_SESSION['error'] = 'Página não encontrada.';
     } else {
         $db->prepare("DELETE FROM conteudos WHERE pagina_id = ?")->execute([$pagina_id]);
-        $db->prepare("DELETE FROM vinculacoes WHERE pagina_id = ?")->execute([$pagina_id]);
         $db->prepare("DELETE FROM paginas WHERE id = ?")->execute([$pagina_id]);
         $_SESSION['success'] = 'Página "' . htmlspecialchars($pagina['titulo']) . '" excluída com sucesso.';
     }

@@ -240,6 +240,21 @@ include __DIR__ . '/../includes/sidebar.php';
                     
                     <?php if ($tipo === 'textarea'): ?>
                         <textarea id="<?= $campo ?>" name="<?= $campo ?>"><?= htmlspecialchars($dados_salvos[$campo] ?? '') ?></textarea>
+                        
+                        <?php if ($campo === 'imagens' && $conteudo['layout_nome'] === 'hero'): ?>
+                            <div style="margin-top: 10px; padding-top: 15px; border-top: 1px solid #e0e0e0;">
+                                <p style="font-size: 12px; color: #666; margin-bottom: 10px;">
+                                    💡 Dica: Separe URLs por vírgula ou quebra de linha. Use o upload abaixo para adicionar novas imagens.
+                                </p>
+                                <div style="display: flex; gap: 10px; align-items: center;">
+                                    <input type="file" id="image_upload_<?= $campo ?>" accept="image/*" style="flex: 1; cursor: pointer;">
+                                    <button type="button" onclick="uploadImage('image_upload_<?= $campo ?>', '<?= $campo ?>')" class="btn-primary" style="padding: 8px 16px; white-space: nowrap;">
+                                        📤 Enviar Imagem
+                                    </button>
+                                </div>
+                                <div id="upload_status_<?= $campo ?>" style="margin-top: 8px; font-size: 12px; display: none;"></div>
+                            </div>
+                        <?php endif; ?>
                     <?php else: ?>
                         <input type="text" id="<?= $campo ?>" name="<?= $campo ?>" value="<?= htmlspecialchars($dados_salvos[$campo] ?? '') ?>">
                     <?php endif; ?>
@@ -258,5 +273,60 @@ include __DIR__ . '/../includes/sidebar.php';
         </form>
     </div>
 </main>
+
+<script>
+function uploadImage(inputId, fieldId) {
+    const input = document.getElementById(inputId);
+    const file = input.files[0];
+    
+    if (!file) {
+        alert('Selecione uma imagem');
+        return;
+    }
+    
+    const formData = new FormData();
+    formData.append('imagem', file);
+    
+    const statusDiv = document.getElementById('upload_status_' + fieldId);
+    statusDiv.style.display = 'block';
+    statusDiv.innerHTML = '⏳ Enviando...';
+    statusDiv.style.color = '#666';
+    
+    fetch('<?= BASE_URL ?>/admin/upload_imagem.php', {
+        method: 'POST',
+        body: formData
+    })
+    .then(response => response.json())
+    .then(data => {
+        if (data.success) {
+            const textarea = document.getElementById(fieldId);
+            const currentValue = textarea.value.trim();
+            
+            // Adiciona a URL com vírgula separando
+            if (currentValue) {
+                textarea.value = currentValue + ', ' + data.path;
+            } else {
+                textarea.value = data.path;
+            }
+            
+            input.value = '';
+            statusDiv.innerHTML = '✅ Imagem adicionada com sucesso!';
+            statusDiv.style.color = '#28a745';
+            
+            setTimeout(() => {
+                statusDiv.style.display = 'none';
+            }, 3000);
+        } else {
+            statusDiv.innerHTML = '❌ Erro: ' + (data.error || 'Desconhecido');
+            statusDiv.style.color = '#dc3545';
+        }
+    })
+    .catch(error => {
+        console.error('Erro:', error);
+        statusDiv.innerHTML = '❌ Erro ao enviar: ' + error.message;
+        statusDiv.style.color = '#dc3545';
+    });
+}
+</script>
 
 <?php include __DIR__ . '/../includes/footer.php'; ?>

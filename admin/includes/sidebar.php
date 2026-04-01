@@ -77,6 +77,33 @@
             </ul>
         </li>
         
+        <li class="menu-item <?= ($current_module == 'blog') ? 'active' : '' ?>">
+            <a href="#" onclick="return false;">
+                <span class="menu-icon">📝</span>
+                <span>Blog</span>
+            </a>
+            <ul class="submenu">
+                <li>
+                    <a href="<?= BASE_URL ?>/admin/blog/posts/index.php"
+                       <?= ($current_page == 'blog-posts') ? 'class="active"' : '' ?>>
+                       Posts
+                    </a>
+                </li>
+                <li>
+                    <a href="<?= BASE_URL ?>/admin/blog/categorias/index.php"
+                       <?= ($current_page == 'blog-categorias') ? 'class="active"' : '' ?>>
+                       Categorias
+                    </a>
+                </li>
+                <li>
+                    <a href="<?= BASE_URL ?>/admin/blog/config.php"
+                       <?= ($current_page == 'blog-config') ? 'class="active"' : '' ?>>
+                       Configurações
+                    </a>
+                </li>
+            </ul>
+        </li>
+
         <li class="menu-item <?= ($current_module == 'paginas') ? 'active' : '' ?>">
             <a href="#" onclick="return false;">
                 <span class="menu-icon">📄</span>

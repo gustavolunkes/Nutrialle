@@ -13,6 +13,9 @@ $db = getDB();
 $blog_cfg = $db->query("SELECT * FROM blog_config WHERE id = 1 LIMIT 1")->fetch();
 $hero_titulo    = $blog_cfg['hero_titulo']    ?? 'Blog Nutrialle';
 $hero_subtitulo = $blog_cfg['hero_subtitulo'] ?? '';
+$hero_cor_inicio = $blog_cfg['hero_cor_inicio'] ?? '#003d85';
+$hero_cor_meio  = $blog_cfg['hero_cor_meio']  ?? '#0057b7';
+$hero_cor_fim   = $blog_cfg['hero_cor_fim']   ?? '#1a7fe0';
 
 $page_title       = $blog_cfg['page_title']       ?? 'Blog';
 $meta_description = $blog_cfg['meta_description'] ?? '';
@@ -97,10 +100,28 @@ include __DIR__ . '/includes/header.php';
 <style>
 /* ── Blog: listagem ───────────────────────────────── */
 .blog-hero {
-    background: linear-gradient(135deg, #003d85 0%, #0057b7 60%, #1a7fe0 100%);
+    background: linear-gradient(135deg, <?= htmlspecialchars($hero_cor_inicio) ?> 0%, <?= htmlspecialchars($hero_cor_meio) ?> 60%, <?= htmlspecialchars($hero_cor_fim) ?> 100%);
     padding: 60px 20px 50px;
     text-align: center;
     color: #fff;
+    position: relative;
+}
+.blog-hero .home-btn {
+    display: inline-block;
+    margin-top: 20px;
+    background: rgba(255,255,255,0.1);
+    color: #fff;
+    border: 1px solid rgba(255,255,255,0.2);
+    padding: 8px 16px;
+    border-radius: 8px;
+    text-decoration: none;
+    font-size: 14px;
+    font-weight: 600;
+    transition: all 0.2s;
+}
+.blog-hero .home-btn:hover {
+    background: rgba(255,255,255,0.2);
+    border-color: rgba(255,255,255,0.3);
 }
 .blog-hero h1 {
     font-size: clamp(28px, 5vw, 44px);
@@ -169,6 +190,34 @@ include __DIR__ . '/includes/header.php';
 }
 .filtro-btn:not(.ativo) .filtro-count {
     background: rgba(0,0,0,0.08);
+}
+
+/* Dropdown para mobile */
+.blog-filtros-mobile {
+    display: none;
+    max-width: 1200px;
+    margin: 0 auto;
+    padding: 14px 0;
+}
+.blog-filtros-mobile select {
+    width: 100%;
+    max-width: 300px;
+    padding: 10px 14px;
+    border: 2px solid #e5e7eb;
+    border-radius: 8px;
+    font-size: 14px;
+    font-family: inherit;
+    background: #fff;
+    cursor: pointer;
+    transition: border-color .2s;
+}
+.blog-filtros-mobile select:focus {
+    outline: none;
+    border-color: #0057b7;
+    box-shadow: 0 0 0 3px rgba(0,87,183,.1);
+}
+.blog-filtros-mobile option {
+    padding: 8px;
 }
 
 /* ── Grid de posts ────────────────────────────────── */
@@ -320,7 +369,7 @@ include __DIR__ . '/includes/header.php';
 .blog-card-ler {
     font-size: 13px;
     font-weight: 700;
-    color: #0057b7;
+    color: #ff7200;
     display: flex;
     align-items: center;
     gap: 4px;
@@ -385,6 +434,11 @@ include __DIR__ . '/includes/header.php';
 @media (max-width: 1024px) {
     .blog-grid { grid-template-columns: repeat(2, 1fr); }
 }
+@media (max-width: 768px) {
+    .blog-filtros-inner { display: none; }
+    .blog-filtros-mobile { display: flex; justify-content: center; }
+    .blog-filtros { padding: 0 16px; }
+}
 @media (max-width: 640px) {
     .blog-grid { grid-template-columns: 1fr; gap: 20px; }
     .blog-hero { padding: 40px 20px 36px; }
@@ -398,6 +452,7 @@ include __DIR__ . '/includes/header.php';
     <?php if (!empty($hero_subtitulo)): ?>
         <p><?= htmlspecialchars($hero_subtitulo) ?></p>
     <?php endif; ?>
+    <a href="<?= BASE_URL ?>/" class="home-btn">← Voltar para Home</a>
 </div>
 
 <!-- FILTRO DE CATEGORIAS -->
@@ -422,6 +477,20 @@ include __DIR__ . '/includes/header.php';
                 <span class="filtro-count"><?= $cat['total'] ?></span>
             </button>
         <?php endforeach; ?>
+    </div>
+
+    <!-- Dropdown para mobile -->
+    <div class="blog-filtros-mobile">
+        <select id="categoria-mobile" onchange="filtrarCategoriaMobile(this.value)">
+            <option value="">Todos (<?= $total_posts ?> artigos)</option>
+            <?php foreach ($categorias as $cat):
+                $ativo = $cat_slug === $cat['slug'];
+            ?>
+                <option value="<?= htmlspecialchars($cat['slug']) ?>" <?= $ativo ? 'selected' : '' ?>>
+                    <?= htmlspecialchars($cat['nome']) ?> (<?= $cat['total'] ?>)
+                </option>
+            <?php endforeach; ?>
+        </select>
     </div>
 </div>
 <?php endif; ?>
@@ -653,6 +722,17 @@ include __DIR__ . '/includes/header.php';
         var state = e.state || { cat: '', pagina: 1 };
         buscarPosts(state.cat || '', state.pagina || 1);
     });
+
+    // ── Função para dropdown mobile ───────────────────────────
+    window.filtrarCategoriaMobile = function(slug) {
+        var btn = document.querySelector('.filtro-btn[data-slug="' + slug + '"]');
+        if (btn) {
+            btn.click();
+        } else {
+            // Para "Todos"
+            document.querySelector('.filtro-btn[data-slug=""]').click();
+        }
+    };
 
 })();
 </script>

@@ -20,5 +20,10 @@ $user_role = $_SESSION['user_role'] ?? 'viewer';
             <link rel="stylesheet" href="<?= BASE_URL ?>/<?= $css ?>">
         <?php endforeach; ?>
     <?php endif; ?>
+    <?php if (isset($extra_js)): ?>
+        <?php foreach ($extra_js as $js): ?>
+            <script src="<?= $js ?>"></script>
+        <?php endforeach; ?>
+    <?php endif; ?>
 </head>
 <body>

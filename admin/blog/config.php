@@ -17,6 +17,9 @@ $config = $db->query("SELECT * FROM blog_config WHERE id = 1")->fetch();
 if ($_SERVER['REQUEST_METHOD'] === 'POST') {
     $hero_titulo    = trim($_POST['hero_titulo']    ?? '');
     $hero_subtitulo = trim($_POST['hero_subtitulo'] ?? '');
+    $hero_cor_inicio = trim($_POST['hero_cor_inicio'] ?? '#003d85');
+    $hero_cor_meio  = trim($_POST['hero_cor_meio']  ?? '#0057b7');
+    $hero_cor_fim   = trim($_POST['hero_cor_fim']   ?? '#1a7fe0');
     $page_title_val = trim($_POST['page_title']     ?? '');
     $meta_desc      = trim($_POST['meta_description'] ?? '');
     $meta_kw        = trim($_POST['meta_keywords']    ?? '');
@@ -24,8 +27,8 @@ if ($_SERVER['REQUEST_METHOD'] === 'POST') {
     if (!$hero_titulo) { $error = 'O título do hero é obrigatório.'; }
     else {
         try {
-            $db->prepare("UPDATE blog_config SET hero_titulo=?, hero_subtitulo=?, page_title=?, meta_description=?, meta_keywords=? WHERE id=1")
-               ->execute([$hero_titulo, $hero_subtitulo, $page_title_val, $meta_desc, $meta_kw]);
+            $db->prepare("UPDATE blog_config SET hero_titulo=?, hero_subtitulo=?, hero_cor_inicio=?, hero_cor_meio=?, hero_cor_fim=?, page_title=?, meta_description=?, meta_keywords=? WHERE id=1")
+               ->execute([$hero_titulo, $hero_subtitulo, $hero_cor_inicio, $hero_cor_meio, $hero_cor_fim, $page_title_val, $meta_desc, $meta_kw]);
             $_SESSION['success'] = 'Configurações do blog atualizadas com sucesso!';
             header('Location: ' . BASE_URL . '/admin/blog/config.php');
             exit;
@@ -84,6 +87,21 @@ textarea.fc{resize:vertical}
             <div class="fg">
                 <label>Subtítulo do Hero</label>
                 <textarea name="hero_subtitulo" class="fc" rows="2" placeholder="Artigos, dicas e novidades..."><?= htmlspecialchars($config['hero_subtitulo'] ?? '') ?></textarea>
+            </div>
+            <div class="fg">
+                <label>Cor Inicial do Gradiente</label>
+                <input type="color" name="hero_cor_inicio" class="fc" value="<?= htmlspecialchars($config['hero_cor_inicio'] ?? '#003d85') ?>" style="height:50px;">
+                <span class="hint">Cor do início do gradiente do hero</span>
+            </div>
+            <div class="fg">
+                <label>Cor do Meio do Gradiente</label>
+                <input type="color" name="hero_cor_meio" class="fc" value="<?= htmlspecialchars($config['hero_cor_meio'] ?? '#0057b7') ?>" style="height:50px;">
+                <span class="hint">Cor do meio do gradiente do hero</span>
+            </div>
+            <div class="fg">
+                <label>Cor Final do Gradiente</label>
+                <input type="color" name="hero_cor_fim" class="fc" value="<?= htmlspecialchars($config['hero_cor_fim'] ?? '#1a7fe0') ?>" style="height:50px;">
+                <span class="hint">Cor do fim do gradiente do hero</span>
             </div>
             <div class="fg">
                 <label>Título da Página (aba do navegador)</label>

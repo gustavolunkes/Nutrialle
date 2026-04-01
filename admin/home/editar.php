@@ -240,7 +240,7 @@ textarea.fc{resize:vertical;min-height:88px}
         <?php foreach ($conteudos as $c):
           $dados  = json_decode($c['dados_json'], true) ?? [];
           $campos = json_decode($c['campos_json'], true) ?? [];
-          $ptitle = $dados['titulo'] ?? ($dados['texto'] ? mb_substr(strip_tags($dados['texto']),0,48).'…' : 'Bloco #'.$c['id']);
+          $ptitle = $dados['titulo'] ?? (($dados['texto'] ?? '') ? mb_substr(strip_tags($dados['texto']),0,48).'…' : 'Bloco #'.$c['id']);
         ?>
         <div class="c-card <?= $c['ativo']?'':'inactive' ?>" data-id="<?= $c['id'] ?>">
           <div class="c-head" onclick="toggleBloco(this)">

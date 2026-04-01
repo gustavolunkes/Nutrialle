@@ -226,15 +226,8 @@ include __DIR__ . '/../includes/sidebar.php';
             <div class="form-group">
                 <label for="role">Tipo de Usuário</label>
                 <select id="role" name="role">
-                    <option value="viewer" <?= (isset($role) && $role == 'viewer') ? 'selected' : '' ?>>Visualizador</option>
-                    <option value="editor" <?= (isset($role) && $role == 'editor') ? 'selected' : '' ?>>Editor</option>
-                    <option value="admin" <?= (isset($role) && $role == 'admin') ? 'selected' : '' ?>>Administrador</option>
+                    <option value="admin" <?= (isset($role) && $role == 'admin') ? 'selected' : 'selected' ?>>Administrador</option>
                 </select>
-                <div class="form-hint">
-                    <strong>Visualizador:</strong> Apenas visualiza<br>
-                    <strong>Editor:</strong> Pode editar conteúdo<br>
-                    <strong>Administrador:</strong> Acesso total
-                </div>
             </div>
             
             <div class="form-group-checkbox">

@@ -235,6 +235,19 @@ textarea.fc{resize:vertical;min-height:88px}
 .dyn-fields{background:var(--bg);border-radius:10px;padding:18px;margin-top:10px}
 .dyn-fields .fg{margin-bottom:14px}
 
+/* ── Upload de imagens (textarea) ──────────────── */
+.up-imgs-box{
+  margin-top:10px;padding:14px;
+  border:1px solid var(--border);border-radius:8px;
+  background:#fff;
+}
+.up-imgs-box .up-imgs-label{
+  font-size:12px;color:var(--muted);margin-bottom:8px;display:flex;align-items:center;gap:5px;
+}
+.up-imgs-row{display:flex;gap:8px;align-items:center;flex-wrap:wrap}
+.up-imgs-row input[type=file]{flex:1;min-width:0;font-size:12px;cursor:pointer}
+.up-imgs-status{font-size:12px;margin-top:6px;display:none}
+
 /* ── Posição checklist ─────────────────────────── */
 .pos-list{display:flex;gap:8px}
 .pos-opt{
@@ -247,7 +260,7 @@ textarea.fc{resize:vertical;min-height:88px}
 .pos-icon{font-size:22px;margin-bottom:3px}
 .pos-label{font-size:12px;font-weight:700;color:var(--text)}
 
-/* ── Upload de imagem ──────────────────────────── */
+/* ── Upload de imagem (campo image) ────────────── */
 .upzone{
   border:2px dashed var(--border);border-radius:10px;padding:24px 16px;
   text-align:center;cursor:pointer;transition:all .2s;background:#fafafa;position:relative;
@@ -394,7 +407,7 @@ textarea.fc{resize:vertical;min-height:88px}
           <?php foreach ($conteudos as $c):
             $dados  = json_decode($c['dados_json'], true) ?? [];
             $campos = json_decode($c['campos_json'], true) ?? [];
-            $ptitle = $dados['titulo'] ?? ($dados['texto'] ? mb_substr(strip_tags($dados['texto']),0,48).'…' : 'Bloco #'.$c['id']);
+            $ptitle = $dados['titulo'] ?? (($dados['texto'] ?? '') ? mb_substr(strip_tags($dados['texto']),0,48).'…' : 'Bloco #'.$c['id']);
           ?>
           <div class="c-card <?= $c['ativo']?'':'inactive' ?>" data-id="<?= $c['id'] ?>">
             <!-- Cabeçalho -->
@@ -497,64 +510,115 @@ textarea.fc{resize:vertical;min-height:88px}
 </div>
 
 <?php
-/* ── Renderiza campos dinamicamente ── */
+/**
+ * ─── renderCampos ───────────────────────────────────────────────────────────
+ * Renderiza os campos do layout dinamicamente tanto na edição (PHP)
+ * quanto servindo de referência para o buildAddFields() do JS (modal de adição).
+ *
+ * Campos do tipo "image"    → upzone (drag & drop + preview)
+ * Campos com nome "imagens" → textarea + botão de upload rápido
+ * Campos "posicao_imagem"   → checklist visual de posição
+ * Demais textarea           → textarea simples
+ * Demais text               → input text
+ * ────────────────────────────────────────────────────────────────────────────
+ */
 function renderCampos(array $campos, array $dados, string $prefix) {
+    // Nomes de campo que usam o seletor visual de posição
+    $positionFields = ['posicao_imagem'];
+
+    // Nomes de campo cujo valor é uma lista de URLs separadas por newline/vírgula
+    // (textarea + botão de upload que adiciona a URL ao final da lista)
+    $multiImageFields = ['imagens'];
+
+    // Posições disponíveis para o seletor visual
     $positions = [
-        'esquerda' => ['⬅️','Esquerda'],
-        'direita'  => ['➡️','Direita'],
-        'topo'     => ['⬆️','Topo'],
-        'fundo'    => ['⬇️','Fundo'],
+        'esquerda' => ['⬅️', 'Esquerda'],
+        'direita'  => ['➡️', 'Direita'],
+        'topo'     => ['⬆️', 'Topo'],
+        'fundo'    => ['⬇️', 'Fundo'],
     ];
 
     foreach ($campos as $key => $type):
         $val   = $dados[$key] ?? '';
-        $label = ucfirst(str_replace('_',' ',$key));
+        $label = ucfirst(str_replace('_', ' ', $key));
         $fid   = "f_{$prefix}_{$key}";
-    ?>
-    <div class="fg" style="margin-bottom:14px">
-      <label><?= htmlspecialchars($label) ?></label>
+        ?>
+        <div class="fg" style="margin-bottom:14px">
+          <label><?= htmlspecialchars($label) ?></label>
 
-      <?php if ($key === 'posicao_imagem'): ?>
-        <!-- CHECKLIST DE POSIÇÃO -->
-        <div class="pos-list">
-          <?php foreach ($positions as $pv => [$pi,$pl]): ?>
-          <label class="pos-opt <?= $val===$pv?'sel':'' ?>" onclick="selPos(this)">
-            <input type="radio" class="pos-r" name="pos_<?= $prefix ?>_<?= $key ?>"
-                   value="<?= $pv ?>" data-campo="<?= $key ?>" <?= $val===$pv?'checked':'' ?>>
-            <div class="pos-icon"><?= $pi ?></div>
-            <div class="pos-label"><?= $pl ?></div>
-          </label>
-          <?php endforeach; ?>
-        </div>
+          <?php if (in_array($key, $positionFields)): ?>
+            <!-- ── Seletor visual de posição ── -->
+            <div class="pos-list">
+              <?php foreach ($positions as $pv => [$pi, $pl]): ?>
+                <label class="pos-opt <?= $val === $pv ? 'sel' : '' ?>" onclick="selPos(this)">
+                  <input type="radio" class="pos-r"
+                         name="pos_<?= $prefix ?>_<?= $key ?>"
+                         value="<?= $pv ?>"
+                         data-campo="<?= $key ?>"
+                         <?= $val === $pv ? 'checked' : '' ?>>
+                  <div class="pos-icon"><?= $pi ?></div>
+                  <div class="pos-label"><?= $pl ?></div>
+                </label>
+              <?php endforeach; ?>
+            </div>
 
-      <?php elseif (in_array($key,['imagem','imagem_fundo'])): ?>
-        <!-- UPLOAD DE IMAGEM -->
-        <div class="upzone" id="zone_<?= $fid ?>"
-             ondragover="event.preventDefault();this.classList.add('drag')"
-             ondragleave="this.classList.remove('drag')"
-             ondrop="dropFile(event,'<?= $fid ?>')">
-          <input type="file" accept="image/*" onchange="selFile(event,'<?= $fid ?>')">
-          <div class="up-icon">📤</div>
-          <div class="up-txt">Arraste ou <b>clique para selecionar</b></div>
-          <div class="up-sub">PNG, JPG, WEBP — máx. 5MB</div>
-        </div>
-        <div class="up-prog" id="prog_<?= $fid ?>"><div class="up-bar" id="bar_<?= $fid ?>"></div></div>
-        <div class="img-prev-wrap" id="prev_<?= $fid ?>" style="<?= $val?'':'display:none' ?>">
-          <?php if ($val): ?>
-            <img src="<?= htmlspecialchars($val) ?>" class="img-prev">
-            <button type="button" class="img-rm" onclick="rmImg('<?= $fid ?>')">✕</button>
+          <?php elseif ($type === 'image'): ?>
+            <!-- ── Upload de imagem única (upzone) ── -->
+            <div class="upzone" id="zone_<?= $fid ?>"
+                 ondragover="event.preventDefault();this.classList.add('drag')"
+                 ondragleave="this.classList.remove('drag')"
+                 ondrop="dropFile(event,'<?= $fid ?>')">
+              <input type="file" accept="image/*" onchange="selFile(event,'<?= $fid ?>')">
+              <div class="up-icon">📤</div>
+              <div class="up-txt">Arraste ou <b>clique para selecionar</b></div>
+              <div class="up-sub">PNG, JPG, WEBP — máx. 5MB</div>
+            </div>
+            <div class="up-prog" id="prog_<?= $fid ?>">
+              <div class="up-bar" id="bar_<?= $fid ?>"></div>
+            </div>
+            <div class="img-prev-wrap" id="prev_<?= $fid ?>" style="<?= $val ? '' : 'display:none' ?>">
+              <?php if ($val): ?>
+                <img src="<?= htmlspecialchars($val) ?>" class="img-prev">
+                <button type="button" class="img-rm" onclick="rmImg('<?= $fid ?>')">✕</button>
+              <?php endif; ?>
+            </div>
+            <input type="hidden" id="<?= $fid ?>" data-campo="<?= $key ?>" value="<?= htmlspecialchars($val) ?>">
+
+          <?php elseif ($type === 'textarea' && in_array($key, $multiImageFields)): ?>
+            <!-- ── Textarea de múltiplas imagens + botão de upload ── -->
+            <textarea class="fc" id="<?= $fid ?>" data-campo="<?= $key ?>"
+                      rows="4"
+                      placeholder="Cole as URLs aqui, uma por linha"><?= htmlspecialchars($val) ?></textarea>
+            <div class="up-imgs-box">
+              <div class="up-imgs-label">
+                📤 <strong>Enviar imagem e adicionar à lista</strong>
+              </div>
+              <div class="up-imgs-row">
+                <input type="file"
+                       id="imgfile_<?= $fid ?>"
+                       accept="image/*">
+                <button type="button"
+                        class="btn btn-accent btn-sm"
+                        onclick="uploadMultiImg('imgfile_<?= $fid ?>','<?= $fid ?>')">
+                  Enviar
+                </button>
+              </div>
+              <div class="up-imgs-status" id="upst_<?= $fid ?>"></div>
+            </div>
+
+          <?php elseif ($type === 'textarea'): ?>
+            <!-- ── Textarea simples ── -->
+            <textarea class="fc" id="<?= $fid ?>" data-campo="<?= $key ?>"
+                      rows="4"><?= htmlspecialchars($val) ?></textarea>
+
+          <?php else: ?>
+            <!-- ── Input texto ── -->
+            <input type="text" class="fc" id="<?= $fid ?>" data-campo="<?= $key ?>"
+                   value="<?= htmlspecialchars($val) ?>">
           <?php endif; ?>
         </div>
-        <input type="hidden" id="<?= $fid ?>" data-campo="<?= $key ?>" value="<?= htmlspecialchars($val) ?>">
-
-      <?php elseif ($type === 'textarea'): ?>
-        <textarea class="fc" id="<?= $fid ?>" data-campo="<?= $key ?>" rows="4"><?= htmlspecialchars($val) ?></textarea>
-
-      <?php else: ?>
-        <input type="text" class="fc" id="<?= $fid ?>" data-campo="<?= $key ?>" value="<?= htmlspecialchars($val) ?>">
-      <?php endif; ?>
-    </div>
-    <?php endforeach;
+        <?php
+    endforeach;
 }
 ?>
 
@@ -590,9 +654,6 @@ function buildDJ(form, campos, prefix) {
     if (key === 'posicao_imagem') {
       const r = form.querySelector('.pos-r[data-campo="'+key+'"]:checked');
       obj[key] = r ? r.value : '';
-    } else if (['imagem','imagem_fundo'].includes(key)) {
-      const el = document.getElementById('f_'+prefix+'_'+key);
-      obj[key] = el ? el.value : '';
     } else {
       const el = document.getElementById('f_'+prefix+'_'+key);
       obj[key] = el ? el.value : '';
@@ -601,9 +662,10 @@ function buildDJ(form, campos, prefix) {
   form.querySelector('.dj-input').value = JSON.stringify(obj);
 }
 
-// ─ UPLOAD ─
-const UPLOAD_URL = '<?= BASE_URL ?>/admin/paginas/upload.php';
+// ─ URL BASE para uploads ─
+const UPLOAD_URL = '<?= BASE_URL ?>/admin/upload_imagem.php';
 
+// ─ Upload imagem única (upzone — campo type=image) ─
 function selFile(e, fid) { if (e.target.files[0]) doUpload(e.target.files[0], fid); }
 function dropFile(e, fid) {
   e.preventDefault();
@@ -640,12 +702,49 @@ function rmImg(fid) {
   if (w) { w.style.display='none'; w.innerHTML=''; }
 }
 
+// ─ Upload de imagem para lista (campo "imagens" — textarea multi) ─
+// Usado tanto na edição (renderCampos PHP) quanto no modal de adição (buildAddFields JS)
+function uploadMultiImg(inputId, fieldId) {
+  const input = document.getElementById(inputId);
+  const file  = input ? input.files[0] : null;
+  if (!file) { alert('Selecione uma imagem.'); return; }
+  if (file.size > 5*1024*1024) { alert('Arquivo muito grande! Máx 5MB.'); return; }
+
+  const statusEl = document.getElementById('upst_'+fieldId);
+  if (statusEl) { statusEl.style.display='block'; statusEl.textContent='⏳ Enviando...'; statusEl.style.color='#666'; }
+
+  const fd = new FormData();
+  fd.append('imagem', file);
+  fetch(UPLOAD_URL, {method:'POST', body:fd})
+    .then(r => r.json())
+    .then(data => {
+      if (data.success) {
+        const ta = document.getElementById(fieldId);
+        if (ta) {
+          const cur = ta.value.trim();
+          ta.value = cur ? cur + '\n' + data.path : data.path;
+        }
+        if (input) input.value = '';
+        if (statusEl) {
+          statusEl.textContent = '✅ Imagem adicionada!';
+          statusEl.style.color = '#065f46';
+          setTimeout(() => { statusEl.style.display='none'; }, 3000);
+        }
+      } else {
+        if (statusEl) { statusEl.textContent = '❌ Erro: '+(data.error||'desconhecido'); statusEl.style.color='#991b1b'; }
+      }
+    })
+    .catch(err => {
+      if (statusEl) { statusEl.textContent = '❌ Falha: '+err.message; statusEl.style.color='#991b1b'; }
+    });
+}
+
 // ─ MODAL ─
 function openModal()  { document.getElementById('modal').classList.add('open'); }
 function closeModal() { document.getElementById('modal').classList.remove('open'); }
 document.getElementById('modal').addEventListener('click', e => { if(e.target===e.currentTarget) closeModal(); });
 
-// Selecionar layout
+// ─ Selecionar layout no modal ─
 function selectLayout(el) {
   document.querySelectorAll('.lp-opt').forEach(o => o.classList.remove('sel'));
   el.classList.add('sel');
@@ -654,18 +753,23 @@ function selectLayout(el) {
   buildAddFields(campos);
 }
 
+// ─ Renderiza campos no modal de adição (espelho do renderCampos PHP) ─
 function buildAddFields(campos) {
   const wrap = document.getElementById('add-fields-wrap');
   const cont = document.getElementById('add-fields');
   cont.innerHTML = '';
+
   const positions = {
-    esquerda:['⬅️','Esquerda'], direita:['➡️','Direita'],
-    topo:['⬆️','Topo'], fundo:['⬇️','Fundo']
+    esquerda: ['⬅️','Esquerda'], direita: ['➡️','Direita'],
+    topo:     ['⬆️','Topo'],    fundo:   ['⬇️','Fundo']
   };
+  const multiImageFields = ['imagens'];
+
   Object.entries(campos).forEach(([key, type]) => {
-    const label = key.replace(/_/g,' ').replace(/\b\w/g,c=>c.toUpperCase());
+    const label = key.replace(/_/g,' ').replace(/\b\w/g, c => c.toUpperCase());
     const fid   = 'fa_'+key;
     let html = `<div class="fg" style="margin-bottom:14px"><label>${label}</label>`;
+
     if (key === 'posicao_imagem') {
       html += '<div class="pos-list">';
       Object.entries(positions).forEach(([pv,[pi,pl]]) => {
@@ -675,7 +779,8 @@ function buildAddFields(campos) {
         </label>`;
       });
       html += '</div>';
-    } else if (['imagem','imagem_fundo'].includes(key)) {
+
+    } else if (type === 'image') {
       html += `<div class="upzone" id="zone_${fid}"
           ondragover="event.preventDefault();this.classList.add('drag')"
           ondragleave="this.classList.remove('drag')"
@@ -688,18 +793,36 @@ function buildAddFields(campos) {
       <div class="up-prog" id="prog_${fid}"><div class="up-bar" id="bar_${fid}"></div></div>
       <div class="img-prev-wrap" id="prev_${fid}" style="display:none"></div>
       <input type="hidden" id="${fid}" data-campo="${key}" value="">`;
+
+    } else if (type === 'textarea' && multiImageFields.includes(key)) {
+      // Textarea de múltiplas imagens + botão de upload (igual ao PHP)
+      html += `<textarea class="fc" id="${fid}" data-campo="${key}"
+                 rows="4" placeholder="Cole as URLs aqui, uma por linha"></textarea>
+        <div class="up-imgs-box">
+          <div class="up-imgs-label">📤 <strong>Enviar imagem e adicionar à lista</strong></div>
+          <div class="up-imgs-row">
+            <input type="file" id="imgfile_${fid}" accept="image/*">
+            <button type="button" class="btn btn-accent btn-sm"
+                    onclick="uploadMultiImg('imgfile_${fid}','${fid}')">Enviar</button>
+          </div>
+          <div class="up-imgs-status" id="upst_${fid}"></div>
+        </div>`;
+
     } else if (type === 'textarea') {
       html += `<textarea class="fc" id="${fid}" data-campo="${key}" rows="4"></textarea>`;
+
     } else {
       html += `<input type="text" class="fc" id="${fid}" data-campo="${key}">`;
     }
+
     html += '</div>';
     cont.innerHTML += html;
   });
+
   wrap.style.display = Object.keys(campos).length ? 'block' : 'none';
 }
 
-// Build JSON para adicionar
+// ─ Build JSON para adicionar bloco ─
 function buildAddDJ() {
   const obj = {};
   document.querySelectorAll('#add-fields [data-campo]').forEach(el => {

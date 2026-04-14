@@ -8,19 +8,20 @@ class Security {
     
     /**
      * Verifica se o IP excedeu o limite de tentativas de login
+     * Bloqueia por IP após 10 tentativas em 10 minutos
      */
-    public static function checkLoginAttempts($email, $ip, $max_attempts = 5, $time_window = 15) {
+    public static function checkLoginAttempts($email, $ip, $max_attempts = 10, $time_window = 10) {
         $db = Database::getInstance()->getConnection();
-        
+
         $stmt = $db->prepare("
-            SELECT COUNT(*) as attempts 
-            FROM login_attempts 
-            WHERE (email = ? OR ip_address = ?) 
-            AND attempted_at >= DATE_SUB(NOW(), INTERVAL ? MINUTE)
+            SELECT COUNT(*) as attempts
+            FROM login_attempts
+            WHERE ip_address = ?
+              AND attempted_at >= DATE_SUB(NOW(), INTERVAL ? MINUTE)
         ");
-        $stmt->execute([$email, $ip, $time_window]);
+        $stmt->execute([$ip, $time_window]);
         $result = $stmt->fetch();
-        
+
         return $result['attempts'] < $max_attempts;
     }
     
@@ -60,7 +61,6 @@ class Security {
     public static function updateSessionActivity($session_id) {
         $db = Database::getInstance()->getConnection();
         
-        // Usa 'id' ao invés de 'session_id'
         $stmt = $db->prepare("UPDATE sessions SET last_activity = NOW() WHERE id = ?");
         $stmt->execute([$session_id]);
     }

@@ -83,6 +83,9 @@ $categorias = $db->query("
     ORDER BY c.nome ASC
 ")->fetchAll();
 
+// ── Total geral (sem filtro) — para o badge "Todos" ───────────
+$total_geral = (int)$db->query("SELECT COUNT(*) FROM blog_posts WHERE ativo = 1")->fetchColumn();
+
 // ── Helper: formata data em pt-BR ─────────────────────────────
 function formatarData(string $data): string {
     $meses = ['', 'janeiro', 'fevereiro', 'março', 'abril', 'maio', 'junho',
@@ -463,7 +466,7 @@ include __DIR__ . '/includes/header.php';
                 data-slug=""
                 data-cor="">
             Todos
-            <span class="filtro-count"><?= $total_posts ?></span>
+            <span class="filtro-count"><?= $total_geral ?></span>
         </button>
         <?php foreach ($categorias as $cat):
             $cor = htmlspecialchars($cat['cor'] ?? '#0057b7');
@@ -482,7 +485,7 @@ include __DIR__ . '/includes/header.php';
     <!-- Dropdown para mobile -->
     <div class="blog-filtros-mobile">
         <select id="categoria-mobile" onchange="filtrarCategoriaMobile(this.value)">
-            <option value="">Todos (<?= $total_posts ?> artigos)</option>
+            <option value="">Todos (<?= $total_geral ?> artigos)</option>
             <?php foreach ($categorias as $cat):
                 $ativo = $cat_slug === $cat['slug'];
             ?>
@@ -656,9 +659,14 @@ include __DIR__ . '/includes/header.php';
                 grid.style.opacity = '1';
                 grid.style.pointerEvents = '';
 
-                // Atualiza total
-                totalTxt.innerHTML = '<strong>' + data.total_label.replace(/<strong>/g, '<strong>') + '</strong>';
+                // Atualiza label de total
                 totalTxt.innerHTML = data.total_label;
+
+                // Atualiza badge do botão "Todos" com o total geral real
+                var btnTodos = document.querySelector('.filtro-btn[data-slug=""] .filtro-count');
+                if (btnTodos && data.total_geral !== undefined) {
+                    btnTodos.textContent = data.total_geral;
+                }
 
                 // Atualiza paginação
                 pagDiv.innerHTML = data.paginacao;
@@ -667,7 +675,7 @@ include __DIR__ . '/includes/header.php';
                 // Atualiza URL sem reload
                 var novaUrl = window.location.pathname;
                 var params = [];
-                if (cat)    params.push('categoria=' + encodeURIComponent(cat));
+                if (cat)        params.push('categoria=' + encodeURIComponent(cat));
                 if (pagina > 1) params.push('pagina=' + pagina);
                 if (params.length) novaUrl += '?' + params.join('&');
                 history.pushState({ cat: cat, pagina: pagina }, '', novaUrl);
@@ -719,7 +727,14 @@ include __DIR__ . '/includes/header.php';
 
     // ── Suporte ao botão Voltar do navegador ──────────────────
     window.addEventListener('popstate', function (e) {
-        var state = e.state || { cat: '', pagina: 1 };
+        var state = e.state;
+        if (!state) {
+            var params = new URLSearchParams(window.location.search);
+            state = {
+                cat:    params.get('categoria') || '',
+                pagina: parseInt(params.get('pagina') || '1', 10)
+            };
+        }
         buscarPosts(state.cat || '', state.pagina || 1);
     });
 
@@ -729,7 +744,6 @@ include __DIR__ . '/includes/header.php';
         if (btn) {
             btn.click();
         } else {
-            // Para "Todos"
             document.querySelector('.filtro-btn[data-slug=""]').click();
         }
     };

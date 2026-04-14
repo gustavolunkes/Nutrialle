@@ -35,11 +35,14 @@ if (!empty($cat_slug)) {
     }
 }
 
-// Total
+// Total filtrado (para label)
 $count_stmt = $db->prepare("SELECT COUNT(*) FROM blog_posts p WHERE p.ativo = 1 $where_cat");
 $count_stmt->execute($bind_params);
 $total_posts   = (int)$count_stmt->fetchColumn();
 $total_paginas = (int)ceil($total_posts / $por_pagina);
+
+// Total geral sem filtro — para manter o badge "Todos" sempre correto
+$total_geral = (int)$db->query("SELECT COUNT(*) FROM blog_posts WHERE ativo = 1")->fetchColumn();
 
 // Posts
 $sql = "
@@ -166,15 +169,17 @@ endif;
 $pag_html = ob_get_clean();
 
 // ── Texto do total ────────────────────────────────────────────
-$label = $total_posts . ' artigo' . ($total_posts !== 1 ? 's' : '') . ' encontrado' . ($total_posts !== 1 ? 's' : '');
+$s     = $total_posts !== 1;
+$label = '<strong>' . $total_posts . '</strong> artigo' . ($s ? 's' : '') . ' encontrado' . ($s ? 's' : '');
 if (!empty($cat_nome)) {
     $label = 'Categoria: <strong>' . htmlspecialchars($cat_nome) . '</strong> — ' . $label;
 }
 
 echo json_encode([
-    'cards'          => $cards_html,
-    'paginacao'      => $pag_html,
-    'total_label'    => $label,
-    'total_paginas'  => $total_paginas,
-    'pagina_atual'   => $pagina_atual,
+    'cards'         => $cards_html,
+    'paginacao'     => $pag_html,
+    'total_label'   => $label,
+    'total_geral'   => $total_geral,   // <-- novo: para atualizar badge "Todos"
+    'total_paginas' => $total_paginas,
+    'pagina_atual'  => $pagina_atual,
 ], JSON_UNESCAPED_UNICODE);

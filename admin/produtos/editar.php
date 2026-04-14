@@ -18,24 +18,25 @@ if (!$p) { $_SESSION['error'] = 'Produto não encontrado.'; header('Location: ' 
 
 $categorias = $db->query("SELECT id, nome FROM categorias_produtos WHERE ativo = 1 ORDER BY nome")->fetchAll();
 
-// Categorias já vinculadas
 $cats_stmt = $db->prepare("SELECT categoria_produto_id FROM produto_categorias WHERE produto_id = ?");
 $cats_stmt->execute([$pid]);
 $cats_sel = $cats_stmt->fetchAll(PDO::FETCH_COLUMN);
 
 if ($_SERVER['REQUEST_METHOD'] === 'POST') {
-    $sku              = strtoupper(trim($_POST['sku'] ?? ''));
-    $nome             = trim($_POST['nome'] ?? '');
-    $descricao_curta  = trim($_POST['descricao_curta'] ?? '');
-    $descricao        = trim($_POST['descricao'] ?? '');
-    $preco            = trim($_POST['preco'] ?? '');
+    $sku               = strtoupper(trim($_POST['sku'] ?? ''));
+    $nome              = trim($_POST['nome'] ?? '');
+    $descricao_curta   = trim($_POST['descricao_curta'] ?? '');
+    $descricao         = trim($_POST['descricao'] ?? '');
+    $preco             = trim($_POST['preco'] ?? '');
     $preco_promocional = trim($_POST['preco_promocional'] ?? '');
-    $imagem_principal = trim($_POST['imagem_principal'] ?? '');
-    $meta_description = trim($_POST['meta_description'] ?? '');
-    $meta_keywords    = trim($_POST['meta_keywords'] ?? '');
-    $destaque         = isset($_POST['destaque']) ? 1 : 0;
-    $ativo            = isset($_POST['ativo']) ? 1 : 0;
-    $cats_sel         = array_map('intval', $_POST['categorias'] ?? []);
+    $whatsapp_vendedor = preg_replace('/\D/', '', trim($_POST['whatsapp_vendedor'] ?? ''));
+    $remover_imagem    = isset($_POST['remover_imagem']);
+    $imagem_principal  = $remover_imagem ? '' : trim($_POST['imagem_principal'] ?? '');
+    $meta_description  = trim($_POST['meta_description'] ?? '');
+    $meta_keywords     = trim($_POST['meta_keywords'] ?? '');
+    $destaque          = isset($_POST['destaque']) ? 1 : 0;
+    $ativo             = isset($_POST['ativo']) ? 1 : 0;
+    $cats_sel          = array_map('intval', $_POST['categorias'] ?? []);
 
     if (!$sku)  { $error = 'O SKU é obrigatório.'; }
     elseif (!$nome) { $error = 'O nome é obrigatório.'; }
@@ -45,12 +46,12 @@ if ($_SERVER['REQUEST_METHOD'] === 'POST') {
         if ($chk->fetch()) { $error = 'Este SKU já está em uso por outro produto.'; }
         else {
             try {
-                $db->prepare("UPDATE produtos SET sku=?,nome=?,descricao_curta=?,descricao=?,preco=?,preco_promocional=?,imagem_principal=?,meta_description=?,meta_keywords=?,destaque=?,ativo=? WHERE id=?")
+                $db->prepare("UPDATE produtos SET sku=?,nome=?,descricao_curta=?,descricao=?,preco=?,preco_promocional=?,whatsapp_vendedor=?,imagem_principal=?,meta_description=?,meta_keywords=?,destaque=?,ativo=? WHERE id=?")
                    ->execute([$sku, $nome, $descricao_curta, $descricao,
                               $preco ?: null, $preco_promocional ?: null,
+                              $whatsapp_vendedor ?: null,
                               $imagem_principal ?: null,
                               $meta_description, $meta_keywords, $destaque, $ativo, $pid]);
-                // Atualiza vínculos de categoria
                 $db->prepare("DELETE FROM produto_categorias WHERE produto_id = ?")->execute([$pid]);
                 foreach ($cats_sel as $cid) {
                     if ($cid) $db->prepare("INSERT IGNORE INTO produto_categorias (produto_id, categoria_produto_id) VALUES (?,?)")->execute([$pid, $cid]);
@@ -61,7 +62,7 @@ if ($_SERVER['REQUEST_METHOD'] === 'POST') {
             } catch (Exception $e) { $error = 'Erro: ' . $e->getMessage(); }
         }
     }
-    $p = array_merge($p, compact('sku','nome','descricao_curta','descricao','preco','preco_promocional','imagem_principal','meta_description','meta_keywords','destaque','ativo'));
+    $p = array_merge($p, compact('sku','nome','descricao_curta','descricao','preco','preco_promocional','whatsapp_vendedor','imagem_principal','meta_description','meta_keywords','destaque','ativo'));
 }
 
 include __DIR__ . '/../includes/header.php';
@@ -112,6 +113,9 @@ textarea.fc{resize:vertical;min-height:90px}
 .preco-wrap{position:relative}
 .preco-wrap span{position:absolute;left:14px;top:50%;transform:translateY(-50%);color:var(--muted);font-size:13px;font-weight:600;pointer-events:none}
 .preco-wrap input{padding-left:34px}
+.wpp-wrap{position:relative}
+.wpp-wrap svg{position:absolute;left:13px;top:50%;transform:translateY(-50%);width:15px;height:15px;color:#25d366;pointer-events:none}
+.wpp-wrap input{padding-left:38px}
 </style>
 
 <main class="content">
@@ -158,7 +162,7 @@ textarea.fc{resize:vertical;min-height:90px}
     </div>
 
     <div class="card">
-        <p class="section-title">Preço & Imagem</p>
+        <p class="section-title">Preço, Vendedor & Imagem</p>
         <div class="form-grid">
             <div class="fg">
                 <label>Preço</label>
@@ -173,12 +177,30 @@ textarea.fc{resize:vertical;min-height:90px}
                 </div>
             </div>
             <div class="fg full">
+                <label>WhatsApp do Vendedor</label>
+                <div class="wpp-wrap">
+                    <svg viewBox="0 0 24 24" fill="currentColor">
+                        <path d="M17.472 14.382c-.297-.149-1.758-.867-2.03-.967-.273-.099-.471-.148-.67.15-.197.297-.767.966-.94 1.164-.173.199-.347.223-.644.075-.297-.15-1.255-.463-2.39-1.475-.883-.788-1.48-1.761-1.653-2.059-.173-.297-.018-.458.13-.606.134-.133.298-.347.446-.52.149-.174.198-.298.298-.497.099-.198.05-.371-.025-.52-.075-.149-.669-1.612-.916-2.207-.242-.579-.487-.5-.669-.51-.173-.008-.371-.01-.57-.01-.198 0-.52.074-.792.372-.272.297-1.04 1.016-1.04 2.479 0 1.462 1.065 2.875 1.213 3.074.149.198 2.096 3.2 5.077 4.487.709.306 1.262.489 1.694.625.712.227 1.36.195 1.871.118.571-.085 1.758-.719 2.006-1.413.248-.694.248-1.289.173-1.413-.074-.124-.272-.198-.57-.347z"/><path d="M12 0C5.373 0 0 5.373 0 12c0 2.123.554 4.118 1.522 5.85L.057 23.776a.5.5 0 0 0 .608.637l6.108-1.598A11.945 11.945 0 0 0 12 24c6.627 0 12-5.373 12-12S18.627 0 12 0zm0 21.818a9.8 9.8 0 0 1-5.032-1.387l-.36-.214-3.733.977.998-3.647-.235-.376A9.818 9.818 0 1 1 12 21.818z"/>
+                    </svg>
+                    <input type="text" name="whatsapp_vendedor" class="fc" value="<?= htmlspecialchars($p['whatsapp_vendedor'] ?? '') ?>" placeholder="5544999999999" maxlength="20" inputmode="numeric">
+                </div>
+                <span class="hint">Código do país + DDD + número, somente dígitos. Ex: <strong>5544999999999</strong>. Deixe vazio para não exibir o botão.</span>
+            </div>
+            <div class="fg full">
                 <label>Imagem Principal</label>
-                <?php if ($p['imagem_principal']): ?>
-                    <div style="margin-bottom:8px;display:flex;align-items:center;gap:10px">
-                        <img src="<?= htmlspecialchars($p['imagem_principal']) ?>" style="width:60px;height:60px;object-fit:cover;border-radius:8px;border:2px solid var(--border)">
-                        <span style="font-size:12px;color:var(--muted)">Imagem atual — envie uma nova para substituir</span>
+                <?php if (!empty($p['imagem_principal'])): ?>
+                    <div id="img-atual" style="margin-bottom:8px;display:flex;align-items:center;gap:10px;padding:10px 12px;border:1.5px solid #e5e7eb;border-radius:10px;background:#fafafa">
+                        <img src="<?= htmlspecialchars($p['imagem_principal']) ?>" style="width:56px;height:56px;object-fit:cover;border-radius:8px;border:1.5px solid #e5e7eb;flex-shrink:0">
+                        <div style="flex:1;min-width:0">
+                            <div style="font-size:12px;font-weight:600;color:#374151;margin-bottom:2px">Imagem atual</div>
+                            <div style="font-size:11px;color:#9ca3af;overflow:hidden;text-overflow:ellipsis;white-space:nowrap"><?= htmlspecialchars(basename($p['imagem_principal'])) ?></div>
+                        </div>
+                        <button type="button" onclick="removerImagem()" style="display:flex;align-items:center;gap:5px;padding:6px 12px;background:#fef2f2;color:#991b1b;border:1.5px solid #fecaca;border-radius:8px;font-size:12px;font-weight:600;cursor:pointer;white-space:nowrap;transition:background .15s" onmouseover="this.style.background='#fee2e2'" onmouseout="this.style.background='#fef2f2'">
+                            <svg width="13" height="13" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2.5"><polyline points="3 6 5 6 21 6"/><path d="M19 6l-1 14a2 2 0 0 1-2 2H8a2 2 0 0 1-2-2L5 6"/><path d="M10 11v6M14 11v6"/><path d="M9 6V4h6v2"/></svg>
+                            Remover imagem
+                        </button>
                     </div>
+                    <input type="hidden" name="remover_imagem" id="inp-remover" value="" disabled>
                 <?php endif; ?>
                 <div class="upzone">
                     <input type="file" accept="image/*" onchange="uploadImg(event)">
@@ -239,12 +261,15 @@ textarea.fc{resize:vertical;min-height:90px}
     </form>
 </div>
 </main>
+
 <script>
 const UPLOAD_URL = '<?= BASE_URL ?>/admin/paginas/upload.php';
+
 document.getElementById('inp-sku').addEventListener('input', function(){
     this.value = this.value.toUpperCase().replace(/[^A-Z0-9-]/g,'');
     document.getElementById('sku-url-prev').textContent = this.value || '...';
 });
+
 function uploadImg(e){
     const fd=new FormData(); fd.append('imagem',e.target.files[0]);
     fetch(UPLOAD_URL,{method:'POST',body:fd}).then(r=>r.json()).then(d=>{
@@ -253,5 +278,22 @@ function uploadImg(e){
         else alert('Erro no upload');
     });
 }
+
+function removerImagem(){
+    if(!confirm('Remover a imagem deste produto?')) return;
+    document.getElementById('img-atual').style.opacity = '0.4';
+    document.getElementById('img-atual').style.pointerEvents = 'none';
+    const inp = document.getElementById('inp-remover');
+    inp.disabled = false;
+    inp.value = '1';
+    // Limpa qualquer novo upload pendente também
+    document.getElementById('img-val').value = '';
+    document.getElementById('img-prev').style.display = 'none';
+}
+
+document.querySelector('[name=whatsapp_vendedor]').addEventListener('input', function(){
+    this.value = this.value.replace(/\D/g,'');
+});
 </script>
+
 <?php include __DIR__ . '/../includes/footer.php'; ?>

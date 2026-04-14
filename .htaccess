@@ -1,7 +1,35 @@
+# ============================================================
+# .htaccess - Geral
+# ============================================================
+
 <IfModule mod_rewrite.c>
     RewriteEngine On
     RewriteBase /site-institucional-Nutrialle/
 
+    # ----------------------------------------------------------
+    # 1. BLOQUEIO DE ARQUIVOS OCULTOS
+    # Bloqueia .git, .env, .htpasswd, etc. (exceto .well-known)
+    # ----------------------------------------------------------
+    RewriteCond %{REQUEST_URI} "!(^|/)\.well-known/([^./]+./?)+$" [NC]
+    RewriteCond %{SCRIPT_FILENAME} -d [OR]
+    RewriteCond %{SCRIPT_FILENAME} -f
+    RewriteRule "(^|/)\." - [F,L]
+
+    # ----------------------------------------------------------
+    # 2. BLOQUEIO DE PASTAS SENSÍVEIS
+    # Bloqueia acesso direto a config, core, layouts, includes
+    # ----------------------------------------------------------
+    RewriteRule ^(config|core|layouts|includes)/.*$ - [F,L]
+    RewriteRule ^(config|core|layouts|includes|admin)/$ - [F,L]
+
+    # Nota sobre a pasta admin:
+    # Não bloqueamos ^admin/.*$ pois os usuários precisam acessar
+    # admin/login.php e assets do admin.
+    # A segurança é garantida via PHP (sessões + rate limiting).
+
+    # ----------------------------------------------------------
+    # 3. ROTEAMENTO (Front Controller)
+    # ----------------------------------------------------------
     RewriteCond %{REQUEST_FILENAME} !-f
     RewriteCond %{REQUEST_FILENAME} !-d
     RewriteCond %{REQUEST_URI} !^/site-institucional-Nutrialle/(admin|assets|config|core|includes|layouts)/
@@ -14,12 +42,24 @@
 
     # Páginas normais (menu/categoria/subcategoria)
     RewriteRule ^([a-z0-9-]+(?:/[a-z0-9-]+)*)/?$ pagina.php?slug=$1 [L,QSA]
+
 </IfModule>
 
+# ----------------------------------------------------------
+# 4. TRATAMENTO DE ERROS
+# ----------------------------------------------------------
 ErrorDocument 404 /site-institucional-Nutrialle/404.php
+ErrorDocument 403 /site-institucional-Nutrialle/404.php
+
+# ----------------------------------------------------------
+# 5. DESATIVAR LISTAGEM DE DIRETÓRIOS
+# ----------------------------------------------------------
 Options -Indexes
 
-<FilesMatch "\.(sql|md|json|log)$">
+# ----------------------------------------------------------
+# 6. BLOQUEIO DE EXTENSÕES PERIGOSAS
+# ----------------------------------------------------------
+<FilesMatch "\.(sql|md|json|log|env|ini|conf|bak|swp|dist|sh|pem|key|crt|p12|pfx|xml|yaml|yml|lock|toml)$">
     <IfModule mod_authz_core.c>
         Require all denied
     </IfModule>
@@ -28,3 +68,50 @@ Options -Indexes
         Deny from all
     </IfModule>
 </FilesMatch>
+
+# ----------------------------------------------------------
+# 7. CABEÇALHOS DE SEGURANÇA HTTP
+# ----------------------------------------------------------
+<IfModule mod_headers.c>
+
+    # Previne Clickjacking
+    Header always set X-Frame-Options "SAMEORIGIN"
+
+    # Previne MIME-type sniffing
+    Header always set X-Content-Type-Options "nosniff"
+
+    # Controla o envio do Referer
+    Header always set Referrer-Policy "strict-origin-when-cross-origin"
+
+    # Restringe acesso a APIs sensíveis do navegador
+    Header always set Permissions-Policy "geolocation=(), microphone=(), camera=(), payment=(), usb=()"
+
+    # Content Security Policy
+    # Ajuste os domínios externos conforme necessário (Google Fonts, CDNs, etc.)
+    Header always set Content-Security-Policy "default-src 'self'; script-src 'self' 'unsafe-inline'; style-src 'self' 'unsafe-inline' https://fonts.googleapis.com; font-src 'self' https://fonts.gstatic.com; img-src 'self' data: https:; connect-src 'self'; frame-ancestors 'self'; base-uri 'self'; form-action 'self';"
+
+    # Remove o cabeçalho que expõe a versão do PHP
+    Header always unset X-Powered-By
+    Header always unset Server
+
+</IfModule>
+
+# ----------------------------------------------------------
+# 8. PROTEÇÃO CONTRA ATAQUES COMUNS
+# ----------------------------------------------------------
+<IfModule mod_rewrite.c>
+
+    # Bloqueia strings típicas de SQL Injection na URL
+    RewriteCond %{QUERY_STRING} (union|select|insert|drop|delete|update|cast|exec|declare|benchmark|char|0x)[^a-z] [NC]
+    RewriteRule .* - [F,L]
+
+    # Bloqueia tentativas de path traversal
+    RewriteCond %{REQUEST_URI} \.\./  [NC]
+    RewriteRule .* - [F,L]
+
+    # Bloqueia User-Agents maliciosos comuns (scanners e bots agressivos)
+    RewriteCond %{HTTP_USER_AGENT} (nikto|sqlmap|nessus|masscan|nmap|zgrab|dirbuster|gobuster) [NC,OR]
+    RewriteCond %{HTTP_USER_AGENT} ^-?$ [NC]
+    RewriteRule .* - [F,L]
+
+</IfModule>

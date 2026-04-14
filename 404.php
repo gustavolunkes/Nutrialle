@@ -316,7 +316,7 @@ include __DIR__ . '/includes/header.php';
                 <span class="nf-eyebrow">Erro &mdash; página não encontrada</span>
 
                 <h1 class="nf-heading">
-                    Esse endereço<br>não existe mais.
+                    Esse endereço<br>não existe.
                 </h1>
 
                 <p class="nf-body">
